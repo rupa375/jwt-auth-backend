@@ -1,4 +1,5 @@
 import generateToken from "../config/token.js";
+import uploadOnCloudinary from "../config/cloudinary.js";
 import User from "../models/user.model.js";
 import bcrypt from "bcrypt";
 
@@ -8,6 +9,11 @@ export const signUp = async (req, res) => {
 
     if (!firstName || !lastName || !email || !password || !userName) {
       return res.status(400).json({ message: "All fields are required" });
+    }
+
+    let profileImage;
+    if (req.file) {
+      profileImage = await uploadOnCloudinary(req.file.path);
     }
 
     const existUser = await User.findOne({ email });
@@ -24,6 +30,7 @@ export const signUp = async (req, res) => {
       email,
       userName,
       password: hashedPassword,
+      profileImage,
     });
 
     const token = generateToken(user._id);
@@ -41,10 +48,12 @@ export const signUp = async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         userName: user.userName,
+        profileImage: user.profileImage,
       },
     });
   } catch (error) {
-    return res.status(500).json({ message: "Internal server error" });
+    console.log("SIGNUP ERROR:", error); // Shows exact reason in terminal
+    return res.status(500).json({ message: error.message });
   }
 };
 
@@ -82,18 +91,17 @@ export const login = async (req, res) => {
       },
     });
   } catch (error) {
-    return res.status(500).json({ message: "Internal server error" });
+    console.log("LOGIN ERROR:", error);
+    return res.status(500).json({ message: error.message });
   }
-}
+};
 
-export const logout=async (req,res)=>{
-    try{
-    res.clearCookie("token")
-   return res.status(200).json({message:"logout successfully"})
-
-    }
-    catch(error){
- return res.status(500).json({ message: "Internal server error" });
-
-    }
-}
+export const logout = async (req, res) => {
+  try {
+    res.clearCookie("token");
+    return res.status(200).json({ message: "Logout successfully" });
+  } catch (error) {
+    console.log("LOGOUT ERROR:", error);
+    return res.status(500).json({ message: error.message });
+  }
+};
